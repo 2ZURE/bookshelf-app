@@ -28,13 +28,13 @@ document.addEventListener("DOMContentLoaded", () => {
     bookElement.classList.add("book-item");
 
     const bookTitle = document.createElement("h3");
-    bookTitle.textContent = title;
+    bookTitle.setAttribute('data-testid', 'bookItemTitle');
 
     const bookAuthor = document.createElement("p");
-    bookAuthor.textContent = `Penulis: ${author}`;
+    bookAuthor.setAttribute('data-testid', 'bookItemAuthor');
 
     const bookYear = document.createElement("p");
-    bookYear.textContent = `Tahun: ${year}`;
+    bookYear.setAttribute('data-testid', 'bookItemYear');
 
     const toggleButton = document.createElement("button");
     toggleButton.textContent = isComplete ? "Belum Selesai dibaca" : "Selesai dibaca";
@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
     const title = document.getElementById("bookFormTitle").value;
     const author = document.getElementById("bookFormAuthor").value;
-    const year = document.getElementById("bookFormYear").value;
+    const year = Number(document.getElementById("bookFormYear").value);
     const isComplete = document.getElementById("bookFormIsComplete").checked;
     const id = Date.now();
     

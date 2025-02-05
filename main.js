@@ -3,16 +3,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const searchForm = document.getElementById("searchBook");
   const incompleteBookList = document.getElementById("incompleteBookList");
   const completeBookList = document.getElementById("completeBookList");
-  let books = JSON.parse(localStorage.getItem("books")) || [];
 
-  function saveBooks() {
-    localStorage.setItem("books", JSON.stringify(books));
+  const STORAGE_KEY = "BOOKSHELF_APPS";
+  let books = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+  function saveToLocalStorage() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
   }
 
-  function renderBooks(filteredBooks = books) {
+  function renderBooks() {
     incompleteBookList.innerHTML = "";
     completeBookList.innerHTML = "";
-    filteredBooks.forEach(book => {
+    books.forEach((book) => {
       const bookElement = createBookElement(book);
       if (book.isComplete) {
         completeBookList.appendChild(bookElement);
@@ -22,85 +24,102 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function createBookElement({ id, title, author, year, isComplete }) {
-    const bookElement = document.createElement("div");
-    bookElement.setAttribute("data-bookid", id);
-    bookElement.classList.add("book-item");
+  function createBookElement(book) {
+    const bookItem = document.createElement("div");
+    bookItem.setAttribute("data-bookid", book.id);
+    bookItem.setAttribute("data-testid", "bookItem");
 
-    const bookTitle = document.createElement("h3");
-    bookTitle.setAttribute('data-testid', 'bookItemTitle');
+    bookItem.innerHTML = `
+      <h3 data-testid="bookItemTitle">${book.title}</h3>
+      <p data-testid="bookItemAuthor">Penulis: ${book.author}</p>
+      <p data-testid="bookItemYear">Tahun: ${book.year}</p>
+      <div>
+        <button data-testid="bookItemIsCompleteButton">${
+          book.isComplete ? "Belum selesai dibaca" : "Selesai dibaca"
+        }</button>
+        <button data-testid="bookItemDeleteButton">Hapus Buku</button>
+        <button data-testid="bookItemEditButton">Edit Buku</button>
+      </div>
+    `;
 
-    const bookAuthor = document.createElement("p");
-    bookAuthor.setAttribute('data-testid', 'bookItemAuthor');
+    const completeButton = bookItem.querySelector("[data-testid='bookItemIsCompleteButton']");
+    completeButton.addEventListener("click", () => toggleBookStatus(book.id));
 
-    const bookYear = document.createElement("p");
-    bookYear.setAttribute('data-testid', 'bookItemYear');
+    const deleteButton = bookItem.querySelector("[data-testid='bookItemDeleteButton']");
+    deleteButton.addEventListener("click", () => deleteBook(book.id));
 
-    const toggleButton = document.createElement("button");
-    toggleButton.textContent = isComplete ? "Belum Selesai dibaca" : "Selesai dibaca";
-    toggleButton.onclick = () => toggleBookStatus(id);
+    const editButton = bookItem.querySelector("[data-testid='bookItemEditButton']");
+    editButton.addEventListener("click", () => editBook(book.id));
 
-    const deleteButton = document.createElement("button");
-    deleteButton.textContent = "Hapus Buku";
-    deleteButton.onclick = () => deleteBook(id);
-
-    const editButton = document.createElement("button");
-    editButton.textContent = "Edit Buku";
-    editButton.onclick = () => editBook(id);
-
-    const actionContainer = document.createElement("div");
-    actionContainer.append(toggleButton, deleteButton, editButton);
-
-    bookElement.append(bookTitle, bookAuthor, bookYear, actionContainer);
-    return bookElement;
+    return bookItem;
   }
 
   function addBook(event) {
     event.preventDefault();
     const title = document.getElementById("bookFormTitle").value;
     const author = document.getElementById("bookFormAuthor").value;
-    const year = Number(document.getElementById("bookFormYear").value);
+    const year = document.getElementById("bookFormYear").value;
     const isComplete = document.getElementById("bookFormIsComplete").checked;
-    const id = Date.now();
     
-    const newBook = { id, title, author, year, isComplete };
-    books.push(newBook);
-    saveBooks();
+    const book = {
+      id: +new Date(),
+      title,
+      author,
+      year,
+      isComplete,
+    };
+
+    books.push(book);
+    saveToLocalStorage();
     renderBooks();
     bookForm.reset();
   }
 
-  function deleteBook(id) {
-    books = books.filter(book => book.id !== id);
-    saveBooks();
+  function deleteBook(bookId) {
+    books = books.filter((book) => book.id !== bookId);
+    saveToLocalStorage();
     renderBooks();
   }
 
-  function toggleBookStatus(id) {
-    books = books.map(book =>
-      book.id === id ? { ...book, isComplete: !book.isComplete } : book
-    );
-    saveBooks();
-    renderBooks();
-  }
-
-  function editBook(id) {
-    const book = books.find(book => book.id === id);
+  function editBook(bookId) {
+    const book = books.find((b) => b.id === bookId);
     if (!book) return;
 
     document.getElementById("bookFormTitle").value = book.title;
     document.getElementById("bookFormAuthor").value = book.author;
     document.getElementById("bookFormYear").value = book.year;
     document.getElementById("bookFormIsComplete").checked = book.isComplete;
-    
-    deleteBook(id);
+
+    books = books.filter((b) => b.id !== bookId);
+    saveToLocalStorage();
+    renderBooks();
+  }
+
+  function toggleBookStatus(bookId) {
+    const book = books.find((b) => b.id === bookId);
+    if (book) {
+      book.isComplete = !book.isComplete;
+      saveToLocalStorage();
+      renderBooks();
+    }
   }
 
   function searchBook(event) {
     event.preventDefault();
-    const searchTitle = document.getElementById("searchBookTitle").value.toLowerCase();
-    const filteredBooks = books.filter(book => book.title.toLowerCase().includes(searchTitle));
-    renderBooks(filteredBooks);
+    const query = document.getElementById("searchBookTitle").value.toLowerCase();
+    
+    const filteredBooks = books.filter((book) => book.title.toLowerCase().includes(query));
+    incompleteBookList.innerHTML = "";
+    completeBookList.innerHTML = "";
+    
+    filteredBooks.forEach((book) => {
+      const bookElement = createBookElement(book);
+      if (book.isComplete) {
+        completeBookList.appendChild(bookElement);
+      } else {
+        incompleteBookList.appendChild(bookElement);
+      }
+    });
   }
 
   bookForm.addEventListener("submit", addBook);
